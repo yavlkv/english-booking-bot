@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from ..config import DAY_NAMES, TIME_SLOTS, TEACHER_ID
+from ..config import DAY_NAMES, TIME_SLOTS, TEACHER_ID, TRIAL_SLOTS, REGULAR_SLOTS
 from ..helpers import format_slot, format_slot_list, get_slot_datetime
 from ..state import appointment_times, appointments, prune_expired_appointments, save_state, user_names
 from .common import main_menu
