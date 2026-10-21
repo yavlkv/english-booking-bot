@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-TOKEN = "8992197599:AAE_D0QlxnUrh0__fRz9l9gFIb3cXHQu4T0"
+TOKEN = "8992197599:AAGRUraCgybQ0PQ1tTWdofq_BHgjyA_glXk"
 TEACHER_ID = int(os.getenv("TEACHER_ID", "778465110"))
 DATA_FILE = Path(__file__).resolve().parent.parent / "bot_state.json"
 # Расписание для пробных занятий (например, только определенные часы)
@@ -26,6 +26,7 @@ DAY_NAMES = {
     "wed": "Среда",
     "thu": "Четверг",
     "sat": "Суббота",
-
-    TIME_SLOTS = REGULAR_SLOTS
+ 
 }
+
+TIME_SLOTS = REGULAR_SLOTS
