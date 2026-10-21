@@ -34,33 +34,81 @@ def build_time_keyboard(day, callback_prefix, include_back_to, available_times):
 async def signup(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    keyboard = [
+        [InlineKeyboardButton("Пробное занятие (30 мин)", callback_data="type_trial")],
+        [InlineKeyboardButton("Разовое занятие (60 мин)", callback_data="type_regular")],
+        [InlineKeyboardButton("⬅ Назад", callback_data="main_menu")]
+    ]
     await query.message.reply_text(
-        "Выбери день:",
-        reply_markup=build_day_keyboard("day_", "main_menu"),
+        "На какое занятие хотите записаться?",
+        reply_markup=InlineKeyboardMarkup(keyboard),
     )
-
+async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    # Запоминаем, какой тип занятия выбрал пользователь
+    booking_type = query.data.split("_")[1] # получим 'trial' или 'regular'
+    context.user_data["booking_type"] = booking_type
+    
+    # Выбираем нужное расписание для отображения дней
+    if booking_type == "trial":
+        slots_data = TRIAL_SLOTS
+        type_name = "пробное"
+    else:
+        slots_data = REGULAR_SLOTS
+        type_name = "разовое"
+        
+    # Строим клавиатуру с днями (используем slots_data вместо TIME_SLOTS)
+    keyboard = [
+        [InlineKeyboardButton(DAY_NAMES[day], callback_data=f"day_{booking_type}_{day}")]
+        for day in slots_data
+    ]
+    keyboard.append([InlineKeyboardButton("⬅ Назад", callback_data="signup")])
+    
+    await query.message.reply_text(
+        f"Выберите день для {type_name} занятия:",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
 
 async def select_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    day = query.data.split("_", 1)[1]
+    # Извлекаем тип и день из callback_data (например, "day_trial_mon")
+    _, booking_type, day = query.data.split("_")
+    
     prune_expired_appointments(persist=True)
 
+    # Выбираем правильное расписание
+    slots_data = TRIAL_SLOTS if booking_type == "trial" else REGULAR_SLOTS
+    
     booked = get_booked_slots()
-    free_slots = [time_range for time_range in TIME_SLOTS[day] if f"{day}_{time_range}" not in booked]
+    
+    # Ищем свободные слоты
+    free_slots = [time_range for time_range in slots_data.get(day, []) if f"{day}_{time_range}" not in booked]
+    
     if not free_slots:
         await query.answer("Нет свободных мест на этот день!", show_alert=True)
         return
 
     await query.answer()
+    
+    # Передаем тип занятия дальше в callback_data для времени
+    keyboard = [
+        [InlineKeyboardButton(time_range, callback_data=f"time_{booking_type}_{day}_{time_range}")]
+        for time_range in free_slots
+    ]
+    keyboard.append([InlineKeyboardButton("⬅ Назад", callback_data="signup")])
+    
     await query.message.reply_text(
         f"Ты выбрал {DAY_NAMES[day]}. Теперь выбери время:",
-        reply_markup=build_time_keyboard(day, "time_", "signup", free_slots), # <-- Здесь исправлено
+        reply_markup=InlineKeyboardMarkup(keyboard),
     )
 
 
 async def select_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    _, day, time_range = query.data.split("_")
+    # callback_data выглядит как "time_regular_mon_19:00-20:00"
+    _, booking_type, day, time_range = query.data.split("_")
     slot = f"{day}_{time_range}"
     user_id = query.from_user.id
     prune_expired_appointments(persist=True)
@@ -79,11 +127,12 @@ async def select_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
     appointment_times[slot] = get_slot_datetime(day, time_range)
     save_state()
     
-    # --- УВЕДОМЛЕНИЕ ПРЕПОДАВАТЕЛЮ О НОВОЙ ЗАПИСИ ---
+    # Уведомление преподавателю (добавляем тип занятия в текст)
+    type_text = "Пробное" if booking_type == "trial" else "Разовое"
     try:
         await context.bot.send_message(
             chat_id=TEACHER_ID,
-            text=f"📅 Новая запись: {user_names[user_id]}, {DAY_NAMES[day]} {time_range}"
+            text=f"📅 Новая запись ({type_text}): {user_names[user_id]}, {DAY_NAMES[day]} {time_range}"
         )
     except Exception as e:
         print(f"Ошибка отправки уведомления: {e}")

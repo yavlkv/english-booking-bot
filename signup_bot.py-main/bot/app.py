@@ -29,6 +29,11 @@ def build_application():
     app.add_handler(CommandHandler("start", ask_name))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, save_name))
 
+from .handlers.user import signup, choose_type, select_day, select_time # и другие
+
+# В функции build_application:
+    app.add_handler(CallbackQueryHandler(choose_type, pattern="^type_"))
+
     app.add_handler(CallbackQueryHandler(main_menu, pattern="^main_menu$"))
     app.add_handler(CallbackQueryHandler(signup, pattern="^signup$"))
     app.add_handler(CallbackQueryHandler(my_bookings, pattern="^mybookings$"))
@@ -43,6 +48,7 @@ def build_application():
     app.add_handler(CallbackQueryHandler(change_new, pattern="^change_new_"))
     app.add_handler(CallbackQueryHandler(cancel, pattern="^cancel$"))
     app.add_handler(CallbackQueryHandler(cancel_select, pattern="^cancel_select_"))
+    
 
     return app
 
