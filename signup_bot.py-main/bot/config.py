@@ -26,4 +26,6 @@ DAY_NAMES = {
     "wed": "Среда",
     "thu": "Четверг",
     "sat": "Суббота",
+
+    TIME_SLOTS = REGULAR_SLOTS
 }
