@@ -121,7 +121,7 @@ async def select_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_state()
     
     # Уведомление преподавателю (добавляем тип занятия в текст)
-        date_str = get_next_date(day) # Получаем дату
+    date_str = get_next_date(day) # Получаем дату
     type_text = "Пробное" if booking_type == "trial" else "Разовое"
     
     try:
