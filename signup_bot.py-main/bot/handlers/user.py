@@ -243,7 +243,7 @@ async def change_new(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_state()
     
     # --- УВЕДОМЛЕНИЕ О ПЕРЕНОСЕ ---
-        date_str = get_next_date(day) # Получаем дату
+    date_str = get_next_date(day) # Получаем дату
     type_text = "Пробное" if booking_type == "trial" else "Разовое"
     
     try:
@@ -312,7 +312,7 @@ async def cancel_select(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_state()
     
     # --- УВЕДОМЛЕНИЕ ОБ ОТМЕНЕ ---
-        date_str = get_next_date(day) # Получаем дату
+    date_str = get_next_date(day) # Получаем дату
     type_text = "Пробное" if booking_type == "trial" else "Разовое"
     
     try:
