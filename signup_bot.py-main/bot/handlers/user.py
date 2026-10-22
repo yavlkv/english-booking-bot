@@ -127,7 +127,7 @@ async def select_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await context.bot.send_message(
             chat_id=TEACHER_ID,
-            text=f"📅 Новая запись ({type_text}): {user_names[user_id]}\nСсылка на ученика: tg://user?id={user_id}\nКогда: {DAY_NAMES[day]} ({date_str}) в {time_range}"
+            text=f"📅 Новая запись ({type_text}): {user_names[user_id]}\nСсылка на ученика: tg://user?id={user_id}\nКогда: {DAY_NAMES[day]} ({date_str}) в {time_range}")
     except Exception as e:
         print(f"Ошибка отправки уведомления: {e}")
 
