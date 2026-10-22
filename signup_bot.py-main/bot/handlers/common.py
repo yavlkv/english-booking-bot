@@ -37,7 +37,14 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     if user_id not in user_names:
         context.user_data["awaiting_name"] = True
-        await update.message.reply_text("Как тебя зовут? Напиши свое имя:")
+        
+        welcome_text = (
+            "Здравствуйте! Я бот для записи на занятия по английскому языку. 👋\n\n"
+            "Если у вас закрытый профиль, и я не могу вам написать, просто отправьте мне любое сообщение сюда, в бот, и я отвечу.\n\n"
+            "Как тебя зовут? Напиши свое имя:"
+        )
+        await update.message.reply_text(welcome_text)
+        
         return
 
     context.user_data["awaiting_name"] = False
