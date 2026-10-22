@@ -4,7 +4,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from ..config import DAY_NAMES, TIME_SLOTS, TEACHER_ID, TRIAL_SLOTS, REGULAR_SLOTS
-from ..helpers import format_slot, format_slot_list, get_slot_datetime
+from ..helpers import format_slot, format_slot_list, get_slot_datetime, get_next_date
 from ..state import appointment_times, appointments, prune_expired_appointments, save_state, user_names
 from .common import main_menu
 
@@ -47,11 +47,9 @@ async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    # Запоминаем, какой тип занятия выбрал пользователь
-    booking_type = query.data.split("_")[1] # получим 'trial' или 'regular'
+    booking_type = query.data.split("_")[1]
     context.user_data["booking_type"] = booking_type
     
-    # Выбираем нужное расписание для отображения дней
     if booking_type == "trial":
         slots_data = TRIAL_SLOTS
         type_name = "пробное"
@@ -59,11 +57,12 @@ async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
         slots_data = REGULAR_SLOTS
         type_name = "разовое"
         
-    # Строим клавиатуру с днями (используем slots_data вместо TIME_SLOTS)
-    keyboard = [
-        [InlineKeyboardButton(DAY_NAMES[day], callback_data=f"day_{booking_type}_{day}")]
-        for day in slots_data
-    ]
+    keyboard = []
+    for day in slots_data:
+        date_str = get_next_date(day) 
+        button_text = f"{DAY_NAMES[day]} ({date_str})"
+        keyboard.append([InlineKeyboardButton(button_text, callback_data=f"day_{booking_type}_{day}")])
+        
     keyboard.append([InlineKeyboardButton("⬅ Назад", callback_data="signup")])
     
     await query.message.reply_text(
@@ -73,17 +72,11 @@ async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def select_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    # Извлекаем тип и день из callback_data (например, "day_trial_mon")
     _, booking_type, day = query.data.split("_")
-    
     prune_expired_appointments(persist=True)
 
-    # Выбираем правильное расписание
     slots_data = TRIAL_SLOTS if booking_type == "trial" else REGULAR_SLOTS
-    
     booked = get_booked_slots()
-    
-    # Ищем свободные слоты
     free_slots = [time_range for time_range in slots_data.get(day, []) if f"{day}_{time_range}" not in booked]
     
     if not free_slots:
@@ -92,15 +85,15 @@ async def select_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.answer()
     
-    # Передаем тип занятия дальше в callback_data для времени
     keyboard = [
         [InlineKeyboardButton(time_range, callback_data=f"time_{booking_type}_{day}_{time_range}")]
         for time_range in free_slots
     ]
     keyboard.append([InlineKeyboardButton("⬅ Назад", callback_data="signup")])
     
+    date_str = get_next_date(day) 
     await query.message.reply_text(
-        f"Ты выбрал {DAY_NAMES[day]}. Теперь выбери время:",
+        f"Ты выбрал {DAY_NAMES[day]} ({date_str}). Теперь выбери время:",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
 
@@ -128,11 +121,13 @@ async def select_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_state()
     
     # Уведомление преподавателю (добавляем тип занятия в текст)
+        date_str = get_next_date(day) # Получаем дату
     type_text = "Пробное" if booking_type == "trial" else "Разовое"
+    
     try:
         await context.bot.send_message(
             chat_id=TEACHER_ID,
-            text=f"📅 Новая запись ({type_text}): {user_names[user_id]}, {DAY_NAMES[day]} {time_range}"
+            text=f"📅 Новая запись ({type_text}): {user_names[user_id]}, {DAY_NAMES[day]} ({date_str}) в {time_range}"
         )
     except Exception as e:
         print(f"Ошибка отправки уведомления: {e}")
@@ -248,10 +243,13 @@ async def change_new(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_state()
     
     # --- УВЕДОМЛЕНИЕ О ПЕРЕНОСЕ ---
+        date_str = get_next_date(day) # Получаем дату
+    type_text = "Пробное" if booking_type == "trial" else "Разовое"
+    
     try:
         await context.bot.send_message(
             chat_id=TEACHER_ID,
-            text=f"🔄 Перенос: {user_names[user_id]}, было {format_slot(old_slot, prefix='')}, стало {DAY_NAMES[day]} {time_range}"
+            text=f"📅 Новая запись ({type_text}): {user_names[user_id]}, {DAY_NAMES[day]} ({date_str}) в {time_range}"
         )
     except Exception as e:
         print(f"Ошибка отправки уведомления: {e}")
@@ -314,10 +312,14 @@ async def cancel_select(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_state()
     
     # --- УВЕДОМЛЕНИЕ ОБ ОТМЕНЕ ---
+        date_str = get_next_date(day) # Получаем дату
+    type_text = "Пробное" if booking_type == "trial" else "Разовое"
+    
     try:
         await context.bot.send_message(
             chat_id=TEACHER_ID,
-            text=f"❌ Отмена: {user_names[user_id]}, {format_slot(slot, prefix='')}"
+            # Добавили дату в сообщение!
+            text=f"📅 Новая запись ({type_text}): {user_names[user_id]}, {DAY_NAMES[day]} ({date_str}) в {time_range}"
         )
     except Exception as e:
         print(f"Ошибка отправки уведомления: {e}")

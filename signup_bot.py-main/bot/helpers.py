@@ -9,9 +9,12 @@ def parse_slot(slot):
     return slot.split("_", 1)
 
 
-def format_slot(slot, prefix="- "):
-    day, time = parse_slot(slot)
-    return f"{prefix}{DAY_NAMES[day]} {time}"
+def format_slot(slot, prefix="• "):
+    day, time_range = slot.split("_", 1)
+    from .config import DAY_NAMES 
+    
+    date_str = get_next_date(day) 
+    return f"{prefix}{DAY_NAMES[day]} ({date_str}) {time_range}"
 
 
 def format_slot_list(slots, prefix="- "):
@@ -42,3 +45,23 @@ def format_user_label(user_id):
     if user_id in user_names:
         return f'<a href="tg://user?id={user_id}">{display_name}</a>'
     return display_name
+
+from datetime import datetime, timedelta
+
+def get_next_date(day_code):
+    """Возвращает строку с датой ближайшего указанного дня недели."""
+    weekday_map = {
+        "mon": 0, "tue": 1, "wed": 2, "thu": 3, 
+        "fri": 4, "sat": 5, "sun": 6
+    }
+    
+    today = datetime.now()
+    target_weekday = weekday_map[day_code]
+    
+    days_ahead = target_weekday - today.weekday()
+    
+    if days_ahead < 0:
+        days_ahead += 7
+        
+    next_date = today + timedelta(days=days_ahead)
+    return next_date.strftime("%d.%m") 
